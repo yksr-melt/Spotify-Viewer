@@ -1,0 +1,29 @@
+{
+  "name": "nowplaying",
+  "version": "1.0.0",
+  "description": "Spotify の再生中表示: 同期歌詞・BPM/キー(Camelot)・Last.fm 再生数・スマホ対応",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "spotify",
+    "now-playing",
+    "lyrics",
+    "last.fm",
+    "camelot",
+    "bpm",
+    "dashboard"
+  ],
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.13.0",
+    "dotenv": "^16.4.5"
+  }
+}
