@@ -68,7 +68,7 @@ npm start
 
 - **全画面**: Android などは最初のタップで全画面になります。iPhone の Safari はウェブページの全画面に対応していないため、共有ボタンから「ホーム画面に追加」して起動してください
 - **画面を暗くしない**: ページを開いている間は画面が消えないようにします（HTTP 接続では最初のタップが必要です）。サーバー側も、誰かが開いている間は Mac のスリープを防ぎます
-  - HTTP 接続では、見えない動画（ミュート）を流し続ける方法で実現します。音楽を再生している端末で開いたときに再生が止まる場合は、URL の末尾に `?awake=off` を付けると、この機能を使わなくなります
+  - 見えない動画（ミュート）を流し続ける方法で実現します（HTTPS・localhost では Screen Wake Lock API も併用します）。音楽を再生している端末で開いたときに再生が止まる場合は、URL の末尾に `?awake=off` を付けると、この機能を使わなくなります
 - スマホで再生している曲の場合、音量の遠隔操作はできないため、音量スライダーは非表示になります
 
 ## セキュリティ上の注意
@@ -112,7 +112,7 @@ npm start
 ## 使用ライブラリ・素材
 
 - [Express](https://expressjs.com) / [ws](https://github.com/websockets/ws) / [dotenv](https://github.com/motdotla/dotenv)
-- [NoSleep.js](https://github.com/richtr/NoSleep.js)（MIT、`public/vendor/` に同梱）
+- [NoSleep.js](https://github.com/richtr/NoSleep.js)（MIT、画面を点けたままにするための動画 `public/vendor/nosleep.*` を同梱）
 - フォント: Google Fonts の Mochiy Pop One / Zen Kaku Gothic New / Syne / DM Mono（CDN から読み込み）
 
 ## ライセンス

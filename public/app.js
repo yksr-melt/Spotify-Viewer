@@ -967,37 +967,65 @@ document.addEventListener("visibilitychange", () => {
 });
 
 // ---------- 画面を暗くしない / スリープさせない ----------
-// Screen Wake Lock API（HTTPS・localhost のみ）を使い、使えない環境（LAN の http など）では
-// NoSleep.js が見えない動画を再生する方法に自動で切り替える。動画は最初の操作が無いと再生できない
+// Screen Wake Lock API（HTTPS・localhost のみ）と、見えない動画を流し続ける方法を併用する。
+// Wake Lock は iPhone のホーム画面アプリなどで成功しても実際には効かないことがあり、
+// 端末の省電力などで勝手に解除されることもあるため、Wake Lock だけに頼ると HTTPS でも暗くなる。
+// 動画は最初の操作が無いと再生できない
 // ?awake=off を付けると、画面を点けたままにする機能を使わない
 const awakeOff = new URLSearchParams(location.search).get("awake") === "off";
-const noSleep = !awakeOff && typeof NoSleep === "function" ? new NoSleep() : null;
+let wakeLock = null;
+let wakeLockPending = false;
 
-// NoSleep の動画は既定で音声つきの扱いのため、その端末で音楽を流していると再生が止まってしまう
-// （音声フォーカスを奪う）。ミュートにして、音声として扱われないようにする
-if (noSleep?.noSleepVideo) {
-  const video = noSleep.noSleepVideo;
-  video.muted = true;
-  video.defaultMuted = true;
-  video.volume = 0;
-  video.setAttribute("muted", "");
+// 動画は音声つきの扱いだと、その端末で流している音楽が止まってしまう（音声フォーカスを奪う）。
+// ミュートにして、音声として扱われないようにする
+const awakeVideo = awakeOff ? null : document.createElement("video");
+if (awakeVideo) {
+  awakeVideo.setAttribute("title", "No Sleep");
+  awakeVideo.setAttribute("playsinline", "");
+  awakeVideo.setAttribute("muted", "");
+  awakeVideo.muted = true;
+  awakeVideo.defaultMuted = true;
+  awakeVideo.volume = 0;
+  awakeVideo.loop = true;
+  for (const [src, type] of [["vendor/nosleep.webm", "video/webm"], ["vendor/nosleep.mp4", "video/mp4"]]) {
+    const source = document.createElement("source");
+    source.src = src;
+    source.type = type;
+    awakeVideo.appendChild(source);
+  }
+}
+
+function requestWakeLock() {
+  if (!("wakeLock" in navigator) || wakeLock || wakeLockPending || document.hidden) return;
+  wakeLockPending = true;
+  navigator.wakeLock
+    .request("screen")
+    .then((lock) => {
+      wakeLock = lock;
+      // タブ切替・画面ロック・省電力などで解除されたら、見えている間はすぐ取り直す
+      lock.addEventListener("release", () => {
+        if (wakeLock === lock) wakeLock = null;
+        requestWakeLock();
+      });
+    })
+    .catch(() => {})
+    .finally(() => {
+      wakeLockPending = false;
+    });
 }
 
 function keepAwake() {
-  if (!noSleep || noSleep.isEnabled) return;
-  Promise.resolve(noSleep.enable()).catch(() => {});
+  if (awakeOff || document.hidden) return;
+  requestWakeLock();
+  if (awakeVideo?.paused) Promise.resolve(awakeVideo.play()).catch(() => {});
 }
 keepAwake();
-["pointerup", "keydown", "touchend"].forEach((type) =>
+["pointerup", "keydown", "touchend", "click"].forEach((type) =>
   document.addEventListener(type, keepAwake, { passive: true })
 );
-// 画面ロックやタブ切替で解除されるので、戻ってきたら取り直す
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && noSleep) {
-    noSleep.disable();
-    keepAwake();
-  }
-});
+// 画面ロックやタブ切替で解除・停止されるので、戻ってきたら取り直す
+document.addEventListener("visibilitychange", keepAwake);
+document.addEventListener("fullscreenchange", keepAwake);
 
 // ---------- 初期化 ----------
 applyTheme(safeStorage("get", "theme") === "day" ? "day" : "night");
